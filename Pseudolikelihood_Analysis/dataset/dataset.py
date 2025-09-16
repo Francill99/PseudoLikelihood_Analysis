@@ -18,8 +18,9 @@ import torch.optim as optim
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
+
 class CustomDataset(Dataset):
-    def __init__(self, P, N, D, d, sigma, seed=None, on_sphere=True, coefficients="gaussian"):
+    def __init__(self, P, N, D, d, sigma, seed=None, on_sphere=True, coefficients="binary", L=None):
         """
         P: Number of patterns
         N: Number of sites
@@ -36,6 +37,10 @@ class CustomDataset(Dataset):
         self.sigma = sigma
         self.on_sphere = on_sphere
         self.coefficients = coefficients
+        if L == None:
+            self.L = D
+        else:
+            self.L = L
 
         if seed is not None:
             torch.manual_seed(seed)
@@ -56,7 +61,6 @@ class CustomDataset(Dataset):
             torch.manual_seed(seed)
         # Create tensor f of shape [D, N, d] with random Gaussian numbers (std = sigma)
         self.f = torch.randint(0, 2, (self.D, self.N, self.d)).float() * 2 - 1
-
         # Normalize f along the last dimension if on_sphere is True
         if self.on_sphere:
             self.f = self.normalize(self.f)
@@ -72,6 +76,11 @@ class CustomDataset(Dataset):
         # Divide c by sqrt(D)
         self.c = self.c / math.sqrt(self.D)
 
+        #For each row of self.c, set to zero self.D-L random entries among the self.D. For each row, different random entries to set to zero
+        indices_to_zero = torch.rand(self.P, self.D)
+        indices_to_zero = indices_to_zero.argsort(dim=1)[:,:self.D-self.L]
+        self.c = self.c.scatter(1, indices_to_zero, 0)
+
         # Update xi: xi[p] = sum_{k=0}^D c[p,k] * f[k]
         self.xi = torch.einsum('pk,kia->pia', self.c, self.f)
         # Create a mask where self.xi == 0
@@ -81,35 +90,40 @@ class CustomDataset(Dataset):
         random_binary_values = torch.randint(0, 2, self.xi.shape, device=self.xi.device) * 2 - 1
         
         # Assign the random binary values to positions where self.xi == 0
-        self.xi = torch.where(mask, random_binary_values, self.xi)
+        self.xi = torch.where(mask, random_binary_values.float(), self.xi.float())
         if self.on_sphere:
             self.xi = self.normalize(self.xi)
 
-    def get_generalization(self, P_hat, L=None):  #P_hat number of generalization vectors to get, L number of features to use
-        if L==None:
-            L = self.D
-        if L>self.D:
-            raise ValueError("L must be less than or equal to D")
-
-        # Create tensor c of shape [P, N] based on coefficient type
+    def get_generalization(self, P_hat):  #P_hat number of generalization vectors to get, L number of features to use
+        # Create tensor c of shape [P_hat, N] based on coefficient type
         if self.coefficients == "binary":
-            self.c = torch.randint(0, 2, (P_hat, self.D)).float() * 2 - 1  # Random +1 or -1
+            c = torch.randint(0, 2, (P_hat, self.D)).float() * 2 - 1  # Random +1 or -1
         elif self.coefficients == "gaussian":
-            self.c = torch.randn(P_hat, self.D)  # Gaussian random numbers
+            c = torch.randn(P_hat, self.D)  # Gaussian random numbers
         else:
             raise ValueError("coefficients must be 'binary' or 'gaussian'")
 
         # Divide c by sqrt(D)
-        self.c = self.c / math.sqrt(self.D)
+        c = c / math.sqrt(self.D)
 
         #For each row of self.c, set to zero self.D-L random entries among the self.D. For each row, different random entries to set to zero
-        indices_to_zero = torch.rand(self.P, self.D)
-        indices_to_zero = indices_to_zero.argsort(dim=1)[:,:self.D-L]
-        self.c = self.c.scatter(1, indices_to_zero, 0)
+        indices_to_zero = torch.rand(P_hat, self.D)
+        indices_to_zero = indices_to_zero.argsort(dim=1)[:,:self.D-self.L]
+        c = c.scatter(1, indices_to_zero, 0)
 
         # xi_new: xi[p] = sum_{k=0}^D c[p,k] * f[k]
-        self.xi_new = torch.einsum('pk,kia->pia', self.c, self.f)
-        self.xi_new = self.normalize(self.xi_new)
+        self.xi_new = torch.einsum('pk,kia->pia', c, self.f)
+
+        # Create a mask where self.xi == 0
+        mask = self.xi_new == 0
+
+        # Generate random binary values (-1 or +1) for the positions where mask is True
+        random_binary_values = torch.randint(0, 2, self.xi_new.shape, device=self.xi_new.device) * 2 - 1
+        
+        # Assign the random binary values to positions where self.xi == 0
+        self.xi = torch.where(mask, random_binary_values.float(), self.xi.float())
+        if self.on_sphere:
+            self.xi_new = self.normalize(self.xi_new)
         return self.xi_new
 
 
@@ -125,3 +139,15 @@ class CustomDataset(Dataset):
     def __getitem__(self, index):
         # Return the pattern xi at the given index
         return self.xi[index]
+
+class DatasetF(Dataset):
+    def __init__(self, D, f):
+        self.D = D
+        self.f = f
+
+    def __len__(self):
+        return self.D
+
+    def __getitem__(self, index):
+        return self.f[index]
+

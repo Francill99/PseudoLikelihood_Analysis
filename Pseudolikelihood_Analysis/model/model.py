@@ -20,12 +20,13 @@ from torch.utils.data import DataLoader
 
 
 class TwoBodiesModel(nn.Module):
-    def __init__(self, N, d, on_sphere, r=1):
+    def __init__(self, N, d, on_sphere, r=1, device=None):
         super(TwoBodiesModel, self).__init__()
         self.N = N
         self.d = d
         self.on_sphere = on_sphere
         self.r = r
+        self.device = device
 
         self.J = nn.Parameter(torch.randn(N, N, d, d))
         diagonal = self.J.data.diagonal(dim1=0, dim2=1)  # Get diagonal elements
@@ -83,7 +84,7 @@ class TwoBodiesModel(nn.Module):
                                 self.J[i, j, :, :] += torch.sum(xi[mu, i, :] * xi[mu, j, :]) / N
             elif form == "Tensorial":
                 for mu in range(P):
-                    xi_mu = xi[mu].to(device)  # Shape: (N, D)
+                    xi_mu = xi[mu].to(self.device)  # Shape: (N, D)
                     outer_products = torch.einsum('ia,jb->ijab', xi_mu, xi_mu) / N  # Shape: (N, N, D)
 
                     # Zero out diagonal elements
@@ -143,12 +144,7 @@ class TwoBodiesModel(nn.Module):
             Z_i_mu = 2*torch.cosh(lambd*r*y_i_mu)  # [M, N]
 
         else:
-            # Compute Z_i^mu for spherical spins
-            nu = (self.d - 2) / 2  # Order of the Bessel function
-            Z_i_mu = (2 * torch.pi ** (self.d / 2) * self.r ** (self.d - 1) /
-                sp.special.gamma((self.d - 1) / 2)) * \
-                (2 / (lambd * y_i_mu)) ** nu * \
-                BesselIvFunction.apply(torch.tensor(nu), self.r * lambd * y_i_mu)  # [M, N]
+            print("To define normalization for d>1")
         return Z_i_mu
 
 

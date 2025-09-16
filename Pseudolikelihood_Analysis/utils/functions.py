@@ -165,3 +165,32 @@ def basins_of_attraction_inp_vectors(input_data, init_overlaps_array, model, n):
     max_overlap_inp_vectors_array = np.array(max_overlap_inp_vectors_list)
     return max_overlap_inp_vectors_array
 
+def compute_validation_loss(model, dataloader, device, init_overlap, n):
+    model.eval()  # Set model to evaluation mode
+    vali_loss = 0.0
+    counter = 0
+
+    with torch.no_grad():  # Disable gradient computation for evaluation
+        for batch_element in dataloader:
+            counter += 1
+            inp_data = batch_element.to(device)
+
+            # Overlap and model dynamics computations
+            input_vectors = start_overlap_binary(inp_data, init_overlap)
+            input_vectors = model.normalize_x(input_vectors)
+
+            x_new = model.dyn_n_step(input_vectors, n)
+
+            # Overlap calculations
+            overlaps = torch.einsum('bnid,bid->bni', x_new, inp_data).mean(dim=-1)
+            final_overlaps = overlaps[:, -1]
+            max_input_overlap, _ = torch.max(overlaps, dim=-1)
+
+            # Compute validation loss
+            vloss = final_overlaps.mean().cpu().numpy()
+            vali_loss += vloss
+
+    if counter != 0:
+        vali_loss = vali_loss / counter
+
+    return vali_loss
