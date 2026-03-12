@@ -1,23 +1,8 @@
-## Standard libraries
-import os
 import numpy as np
-import random
-import math
 import time
-import copy
 import argparse
 import torch
 import gc
-
-## PyTorch
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.data as data
-import torch.optim as optim
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
-
 from Pseudolikelihood_Analysis.model.model import TwoBodiesModel
 from Pseudolikelihood_Analysis.dataset.dataset import CustomDataset, DatasetF
 from Pseudolikelihood_Analysis.utils.saving import Save_Model, SaveBestModel
@@ -36,9 +21,7 @@ def initialize(N=1000, P=400, D=0, d=1, on_sphere=True, l=1, device='cuda', L=3)
 
     # Initialize the model
     model = TwoBodiesModel(N, d, on_sphere)
-    model.to(device)  # Move the model to the specified device
-
-    # Apply the Hebb rule
+    model.to(device)  
     model.Hebb(dataset.xi, 'Tensorial')
 
     # Return the dataset and model
@@ -46,17 +29,12 @@ def initialize(N=1000, P=400, D=0, d=1, on_sphere=True, l=1, device='cuda', L=3)
 
 def train_model(model, dataloader, dataloader_f, dataloader_gen, epochs, learning_rate, max_grad, device, data_PATH,
                 model_name, init_overlap, n, l, fake_opt, J2, norm_J2, valid_every, epochs_to_save, model_name_base, save):
-    # Initial setup
-    norm_0 = torch.tensor(1)
-    norm = torch.tensor(1)
-    save_model_epoch = np.empty(len(epochs_to_save), dtype=object)
 
-    # Initialize SaveModel class
+    save_model_epoch = np.empty(len(epochs_to_save), dtype=object)
     save_model = Save_Model(data_PATH + model_name, print=False)
     for i_e, e in enumerate(epochs_to_save):
         save_model_epoch[i_e] = Save_Model(data_PATH+model_name_base+"ep{}.pth".format(e), print=False)
     aa = 0
-    # Initialize histories
     hist_loss = []
     hist_vloss = []
     hist_asymm = []
@@ -74,15 +52,12 @@ def train_model(model, dataloader, dataloader_f, dataloader_gen, epochs, learnin
         train_loss = 0.0
         counter = 0
 
-        # Training batch-wise
         for batch_element in dataloader:
             counter += 1
             inp_data = batch_element.to(device)
 
-            # Compute loss
             loss = model(inp_data, lambd=l)
 
-            # Check for valid loss values (no NaN or Inf)
             if (torch.isnan(loss).any() == False) and (torch.isinf(loss).any() == False):
                 model.zero_grad()
                 with torch.no_grad():
@@ -166,22 +141,16 @@ def train_model(model, dataloader, dataloader_f, dataloader_gen, epochs, learnin
             save_model(vali_loss, epoch, model, fake_opt, hist_vloss, time_from_in)
         else:
             to_save = np.array([vali_loss,vali_loss_f,vali_loss_gen])
-            #np.save(data_PATH + model_name_base+"overlaps",to_save)
-            print(to_save)
             J = model.J.squeeze().cpu().detach().numpy()
             asymmetry = compute_asymmetry(J)
-            print(asymmetry)
-    # Compute model parameters for logging
     J = model.J.squeeze().cpu().detach().numpy()
     norm_J = np.linalg.norm(J)
     asymmetry = compute_asymmetry(J)
     diff_Hebb = np.linalg.norm(J2 * norm_J / norm_J2 - J) / (norm_J+1e-9)
-    # Append to history
     hist_asymm.append(asymmetry)
     hist_diff.append(diff_Hebb)
     hist_J_norm.append(norm_J)
 
-    # Return training history for further analysis
     return hist_loss, hist_vloss, hist_asymm, hist_diff, hist_J_norm
 
 def main(N, alpha_P, alpha_D, l, L, d, on_sphere, init_overlap, n, device, data_PATH, epochs, learning_rate, valid_every, max_grad, P_generalization):
@@ -212,7 +181,7 @@ def main(N, alpha_P, alpha_D, l, L, d, on_sphere, init_overlap, n, device, data_
 
     model2 = TwoBodiesModel(N, d, on_sphere)
     model2.to(device)
-    model2.Hebb(dataset.xi, 'Tensorial')  # Applying the Hebb rule
+    model2.Hebb(dataset.xi, 'Tensorial')  
     J2 = model2.J.squeeze().cpu().detach().numpy()
     norm_J2 = np.linalg.norm(J2)
 
@@ -237,7 +206,6 @@ def main(N, alpha_P, alpha_D, l, L, d, on_sphere, init_overlap, n, device, data_
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Training GD")
 
-    # Define all the parameters
     parser.add_argument("--N", type=int, required=True)
     parser.add_argument("--alpha_P", type=float, required=True)
     parser.add_argument("--alpha_D", type=float, required=True)
@@ -257,5 +225,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Run the main function with the parsed arguments
     main(args.N, args.alpha_P, args.alpha_D, args.l, args.L, args.d, args.on_sphere, args.init_overlap, args.n, args.device, args.data_PATH, args.epochs, args.learning_rate, args.max_grad, args.valid_every, args.P_generalization)
