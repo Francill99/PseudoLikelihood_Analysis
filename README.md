@@ -15,8 +15,6 @@ https://github.com/Francill99/PL
 
 The present repository remains for code and data used for the paper 
 
---
-
 ## Installation
 
 Clone the repository:
