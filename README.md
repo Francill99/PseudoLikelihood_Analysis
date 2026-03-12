@@ -4,7 +4,7 @@ Francesco D'Amico, Dario Bocchi, Luca Maria Del Bono, Saverio Rossi, Matteo Negr
 ArXiv: https://arxiv.org/abs/2507.05147
 
 The code released has been produced to run simulations for pseudolikelihood training of a binary, two-bodies interaction model.
-This code has two built-in custom dataset: random binary data and random features binary data.
+This code has three built-in custom datasets: random binary data and random features binary data, and binarized MNIST data.
 
 ---
 
