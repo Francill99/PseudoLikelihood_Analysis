@@ -1,22 +1,5 @@
-## Standard libraries
-import os
-import numpy as np
-import random
-import math
-import time
-import copy
-import argparse
-import torch
-import gc
-
-## PyTorch
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.data as data
-import torch.optim as optim
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
 
 
 class TwoBodiesModel(nn.Module):
@@ -48,9 +31,6 @@ class TwoBodiesModel(nn.Module):
             self.J.data = (self.J.data + self.J.data.transpose(0,1))/2
 
     def normalize_x(self, x):
-        """
-        Normalize each d-dimensional vector in x on the sphere if self.on_sphere is True.
-        """
         if self.on_sphere:
             with torch.no_grad():
                 norms = x.norm(dim=-1, keepdim=True)+1e-9
@@ -59,25 +39,21 @@ class TwoBodiesModel(nn.Module):
 
     def Hebb(self, xi, form):
         """
-        Calculates J based on the Hebb rule.
         xi -- input tensor of shape [P, N, d]
         form -- a string, either "Isotropic" or "Tensorial"
         """
-        P = xi.shape[0]  # Number of patterns
+        P = xi.shape[0] 
         N = self.N
         d = self.d
 
         if form not in ["Isotropic", "Tensorial"]:
             raise ValueError("Form must be either 'Isotropic' or 'Tensorial'")
 
-        # Zero out self.J to calculate the new values based on xi
         with torch.no_grad():
             self.J.zero_()
-
             # Hebbian rule for Isotropic or Tensorial form
             if form == "Isotropic":
                 for mu in range(P):
-                    # For Isotropic form: J_ij = (1/N) * sum(xi_i^mu * xi_j^mu)
                     for i in range(N):
                         for j in range(N):
                             if i != j:
@@ -142,14 +118,12 @@ class TwoBodiesModel(nn.Module):
     def Z_i_mu_func(self, y_i_mu, lambd, r=1):
         if self.d == 1:
             Z_i_mu = 2*torch.cosh(lambd*r*y_i_mu)  # [M, N]
-
         else:
             print("To define normalization for d>1")
         return Z_i_mu
 
 
     def forward(self, xi_batch, lambd, alpha=None, i_rand=None, r=1, l2=False):
-         #* self.mask.to(device)
         diagonal = self.J.data.diagonal(dim1=0, dim2=1)  # Get diagonal elements
         diagonal.fill_(0)
         J_masked = self.J
@@ -166,10 +140,8 @@ class TwoBodiesModel(nn.Module):
 
         else:
             J_x = torch.einsum('ijab,mjb->mia', J_masked, xi_batch)   # [M, d]
-            y_i_mu = J_x.norm(dim=-1)  # Taking the norm over the last dimension -> [M,N]
+            y_i_mu = J_x.norm(dim=-1)  # Taking the norm over the last dimension  [M,N]
             x_J_x = torch.einsum('mia,mia->mi', xi_batch, J_x)  # [M, N]
-            # Compute the energy term for each mu: - dot_product + lam^-1 * log(Z_i_mu)
-                        # Compute the energy term for each mu: - dot_product + lam^-1 * log(Z_i_mu)
             if alpha==None:
                 energy_i_mu = -x_J_x + (1 / lambd) * torch.log(self.Z_i_mu_func(y_i_mu,lambd,r)+1e-9)  # [M,N]
             else:
