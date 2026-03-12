@@ -8,6 +8,15 @@ This code has three built-in custom datasets: random binary data and random feat
 
 ---
 
+## Attention: new version available
+If you are interested in pseudolikelihood training and random/random-features datasets, we have made a cleaner, optimized, more general and library-like repository:
+
+https://github.com/Francill99/PL
+
+The present repository remains for code and data used for the paper 
+
+--
+
 ## Installation
 
 Clone the repository:
