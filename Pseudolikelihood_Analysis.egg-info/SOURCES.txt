@@ -1,8 +1,0 @@
-LICENSE
-pyproject.toml
-setup.py
-Pseudolikelihood_Analysis.egg-info/PKG-INFO
-Pseudolikelihood_Analysis.egg-info/SOURCES.txt
-Pseudolikelihood_Analysis.egg-info/dependency_links.txt
-Pseudolikelihood_Analysis.egg-info/requires.txt
-Pseudolikelihood_Analysis.egg-info/top_level.txt
