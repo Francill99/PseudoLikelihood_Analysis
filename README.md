@@ -37,7 +37,14 @@ conda activate your_env_name
 ---
 
 ## Structure of the repository
+
 In "Pseudolikelihodd_Analysis" folder there are codes used. In "Graphs" folder there are data and code to reproduce the plots in the paper.
+
+---
+
+## Binarized MNIST
+
+The entire experiment for MNIST data, including the procedure to generate the binarized dataset as in M. Belyaev, A. Velichko, "Classification of handwritten digits using the hopfield network", can be found inside the notebook ""
 
 ---
 ## Basic Example
