@@ -13,7 +13,7 @@ If you are interested in pseudolikelihood training and random/random-features da
 
 https://github.com/Francill99/PL
 
-The present repository remains for code and data used for the paper 
+This repository remains for reference for the code and data specific of the paper 
 
 ## Installation
 
