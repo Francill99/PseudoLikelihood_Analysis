@@ -42,9 +42,9 @@ In "Pseudolikelihodd_Analysis" folder there are codes used. In "Graphs" folder t
 
 ---
 
-## Binarized MNIST
+## Binarized MNIST dataset
 
-The entire experiment for MNIST data, including the procedure to generate the binarized dataset as in M. Belyaev, A. Velichko, "Classification of handwritten digits using the hopfield network", can be found inside the notebook ""
+The entire experiment for MNIST data, including the procedure to generate the binarized dataset as in M. Belyaev, A. Velichko, "Classification of handwritten digits using the hopfield network", can be found inside the notebook "MNIST_binary_experiment.ipynb"
 
 ---
 ## Basic Example
